@@ -1,9 +1,32 @@
 const User = require("../../models/User");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const localStrategy = require("../../middlewares/passport");
+require("dotenv").config();
 
-exports.signup = async (req, res) => {
+const generateToken = (user, next) => {
   try {
+    payload = {
+      username: user._id,
+    };
+    return jwt.sign(payload, process.env.JWT_SECRET_KEY, { expiresIn: "1h" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.signup = async (req, res, next) => {
+  try {
+    const saltRounds = 10;
+
+    const hashedPassword = await bcrypt.hash(req.body.password, saltRounds);
+    req.body.password = hashedPassword;
     const newUser = await User.create(req.body);
-    res.status(201).json(newUser);
+    // res.status(201).json("Successfully signed up!");
+
+    const token = generateToken(newUser);
+
+    res.status(200).json({ token });
   } catch (err) {
     next(err);
   }
@@ -11,6 +34,8 @@ exports.signup = async (req, res) => {
 
 exports.signin = async (req, res) => {
   try {
+    const token = generateToken(req.user);
+    res.status(201).json({ token });
   } catch (err) {
     res.status(500).json("Server Error");
   }
