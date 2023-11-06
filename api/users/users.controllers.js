@@ -6,8 +6,9 @@ require("dotenv").config();
 
 const generateToken = (user, next) => {
   try {
-    payload = {
-      username: user._id,
+    const payload = {
+      _id: user._id,
+      username: user.username,
     };
     return jwt.sign(payload, process.env.JWT_SECRET_KEY, { expiresIn: "1h" });
   } catch (error) {

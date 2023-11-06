@@ -2,7 +2,7 @@ const Url = require("../../models/Url");
 const shortid = require("shortid");
 const User = require("../../models/User");
 
-const baseUrl = "http:localhost:8000/urls";
+const baseUrl = "http://localhost:8000/urls";
 
 exports.shorten = async (req, res) => {
   // create url code
@@ -10,9 +10,9 @@ exports.shorten = async (req, res) => {
   try {
     req.body.shortUrl = `${baseUrl}/${urlCode}`;
     req.body.urlCode = urlCode;
-    req.body.userId = req.params.userId;
+    req.body.userId = req.user._id;
     const newUrl = await Url.create(req.body);
-    await User.findByIdAndUpdate(req.params.userId, {
+    await User.findByIdAndUpdate(req.user.userId, {
       $push: { urls: newUrl._id },
     });
     res.json(newUrl);
@@ -37,9 +37,15 @@ exports.redirect = async (req, res) => {
 exports.deleteUrl = async (req, res) => {
   try {
     const url = await Url.findOne({ urlCode: req.params.code });
+    console.log(url);
+
     if (url) {
-      await Url.findByIdAndDelete(url._id);
-      return res.status(201).json("Deleted");
+      if (req.user._id.equals(url.userId)) {
+        await Url.findByIdAndDelete(url._id);
+        return res.status(201).json("Deleted");
+      } else {
+        res.status(401).json({ message: "No permission to delete" });
+      }
     } else {
       return res.status(404).json("No URL Found");
     }
